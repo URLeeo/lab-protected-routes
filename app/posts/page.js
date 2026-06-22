@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
 
 // Right now ANYONE can open /posts, even when they are logged out. That is the
 // first thing you will fix: wrap this page so only authenticated users see it.
@@ -8,9 +10,11 @@ import { useEffect, useState } from "react";
 // There is also no way to delete a post yet. Admins should get a delete button
 // on each card. Normal users should not even see it.
 
-export default function PostsPage() {
+function PostsContent() {
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isAdmin = user?.role === "ADMIN";
 
   useEffect(() => {
     fetch("https://jsonplaceholder.typicode.com/posts")
@@ -18,6 +22,12 @@ export default function PostsPage() {
       .then((data) => setPosts(data.slice(0, 12)))
       .finally(() => setLoading(false));
   }, []);
+
+  function handleDelete(postId) {
+    setPosts((currentPosts) =>
+      currentPosts.filter((post) => post.id !== postId)
+    );
+  }
 
   if (loading) {
     return (
@@ -42,14 +52,26 @@ export default function PostsPage() {
               {post.title}
             </h2>
             <p className="mt-2 flex-1 text-sm text-slate-600">{post.body}</p>
-            {/*
-              An admin-only delete button belongs here.
-              Deleting can just remove the post from local state,
-              jsonplaceholder does not really store the change.
-            */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => handleDelete(post.id)}
+                className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
+              >
+                Delete post
+              </button>
+            )}
           </article>
         ))}
       </div>
     </div>
+  );
+}
+
+export default function PostsPage() {
+  return (
+    <ProtectedRoute>
+      <PostsContent />
+    </ProtectedRoute>
   );
 }
